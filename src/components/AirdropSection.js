@@ -22,9 +22,6 @@ const AirdropSection = () => {
   // USDT TRC20 Contract Address on Tron
   const USDT_TRC20_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 
-  // BSC Mainnet Chain ID
-  const BSC_CHAIN_ID = '0x38';
-
   // Wallet types
   const WALLET_TYPES = {
     METAMASK: 'metamask',
