@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { PieChart, BarChart3, DollarSign, Lock, Zap, Gift, Coins } from 'lucide-react';
+import { BarChart3, Lock, Zap, Gift, Coins } from 'lucide-react';
 
 const Tokenomics = () => {
   const airdropDistribution = [

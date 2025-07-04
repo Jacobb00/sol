@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, Gift, Check, Copy, ExternalLink, AlertTriangle, Smartphone } from 'lucide-react';
+import { Wallet, Gift, Check, Copy, ExternalLink, Smartphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AirdropSection = () => {
@@ -8,7 +8,6 @@ const AirdropSection = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isClaimed, setIsClaimed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCorrectNetwork, setIsCorrectNetwork] = useState(false);
   const [connectedWalletType, setConnectedWalletType] = useState('');
   
   // Solana wallet states
@@ -25,20 +24,6 @@ const AirdropSection = () => {
 
   // BSC Mainnet Chain ID
   const BSC_CHAIN_ID = '0x38';
-  const BSC_NETWORK_CONFIG = {
-    chainId: BSC_CHAIN_ID,
-    chainName: 'Binance Smart Chain',
-    nativeCurrency: {
-      name: 'BNB',
-      symbol: 'BNB',
-      decimals: 18,
-    },
-    rpcUrls: ['https://bsc-dataseed.binance.org/'],
-    blockExplorerUrls: ['https://bscscan.com/'],
-  };
-
-  // Tron Mainnet Chain ID
-  const TRON_CHAIN_ID = '0x2b6653dc';
 
   // Wallet types
   const WALLET_TYPES = {
@@ -393,7 +378,6 @@ const AirdropSection = () => {
     setIsConnected(false);
     setIsSolanaConnected(false);
     setIsClaimed(false);
-    setIsCorrectNetwork(false);
     setConnectedWalletType('');
     toast.success('Wallet disconnected.');
   };
