@@ -63,4 +63,22 @@
   .card-gradient {
     background: linear-gradient(135deg, rgba(240, 185, 11, 0.1) 0%, rgba(255, 107, 107, 0.1) 100%);
   }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    .glass-effect {
+      backdrop-filter: blur(8px);
+    }
+    
+    /* Better touch targets for mobile */
+    button, a {
+      min-height: 44px;
+      touch-action: manipulation;
+    }
+    
+    /* Prevent zoom on input focus */
+    input, select, textarea {
+      font-size: 16px;
+    }
+  }
 } 

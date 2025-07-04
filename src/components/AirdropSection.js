@@ -29,6 +29,27 @@ const AirdropSection = () => {
     PHANTOM: 'phantom'
   };
 
+  // Mobile detection
+  const isMobile = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  };
+
+  // Deep link generators for mobile wallets
+  const generateDeepLink = (walletType) => {
+    const currentUrl = encodeURIComponent(window.location.href);
+    
+    switch(walletType) {
+      case 'metamask':
+        return `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`;
+      case 'trustwallet':
+        return `https://link.trustwallet.com/open_url?coin_id=60&url=${currentUrl}`;
+      case 'phantom':
+        return `https://phantom.app/ul/browse/${window.location.host}${window.location.pathname}`;
+      default:
+        return '#';
+    }
+  };
+
   // Check if MetaMask is installed
   const isMetaMaskInstalled = () => {
     return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask;
@@ -51,10 +72,19 @@ const AirdropSection = () => {
 
   // Connect MetaMask wallet
   const connectMetaMask = async () => {
-    if (!isMetaMaskInstalled()) {
-      toast.error('MetaMask not installed! Please install MetaMask.');
-      window.open('https://metamask.io/download/', '_blank');
-      return;
+    // Check if on mobile
+    if (isMobile()) {
+      if (!isMetaMaskInstalled()) {
+        toast.loading('Opening MetaMask app...', { duration: 2000 });
+        window.open(generateDeepLink('metamask'), '_blank');
+        return;
+      }
+    } else {
+      if (!isMetaMaskInstalled()) {
+        toast.error('MetaMask not installed! Please install MetaMask.');
+        window.open('https://metamask.io/download/', '_blank');
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -76,7 +106,11 @@ const AirdropSection = () => {
       }
     } catch (error) {
       console.error('MetaMask connection error:', error);
-      toast.error('Error connecting MetaMask!');
+      if (isMobile()) {
+        toast.error('Please open this page in MetaMask browser!');
+      } else {
+        toast.error('Error connecting MetaMask!');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -84,10 +118,19 @@ const AirdropSection = () => {
 
   // Connect TrustWallet
   const connectTrustWallet = async () => {
-    if (!isTrustWalletInstalled() && !isMetaMaskInstalled()) {
-      toast.error('TrustWallet not installed! Please install TrustWallet.');
-      window.open('https://trustwallet.com/download', '_blank');
-      return;
+    // Check if on mobile
+    if (isMobile()) {
+      if (!isTrustWalletInstalled() && !isMetaMaskInstalled()) {
+        toast.loading('Opening TrustWallet app...', { duration: 2000 });
+        window.open(generateDeepLink('trustwallet'), '_blank');
+        return;
+      }
+    } else {
+      if (!isTrustWalletInstalled() && !isMetaMaskInstalled()) {
+        toast.error('TrustWallet not installed! Please install TrustWallet.');
+        window.open('https://trustwallet.com/download', '_blank');
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -110,7 +153,11 @@ const AirdropSection = () => {
       }
     } catch (error) {
       console.error('TrustWallet connection error:', error);
-      toast.error('Error connecting TrustWallet!');
+      if (isMobile()) {
+        toast.error('Please open this page in TrustWallet browser!');
+      } else {
+        toast.error('Error connecting TrustWallet!');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -118,10 +165,19 @@ const AirdropSection = () => {
 
   // Connect Phantom wallet
   const connectPhantom = async () => {
-    if (!isPhantomInstalled()) {
-      toast.error('Phantom wallet not installed! Please install Phantom.');
-      window.open('https://phantom.app/', '_blank');
-      return;
+    // Check if on mobile
+    if (isMobile()) {
+      if (!isPhantomInstalled()) {
+        toast.loading('Opening Phantom app...', { duration: 2000 });
+        window.open(generateDeepLink('phantom'), '_blank');
+        return;
+      }
+    } else {
+      if (!isPhantomInstalled()) {
+        toast.error('Phantom wallet not installed! Please install Phantom.');
+        window.open('https://phantom.app/', '_blank');
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -138,7 +194,11 @@ const AirdropSection = () => {
       }, 2000);
     } catch (error) {
       console.error('Phantom connection error:', error);
-      toast.error('Error connecting Phantom!');
+      if (isMobile()) {
+        toast.error('Please open this page in Phantom browser!');
+      } else {
+        toast.error('Error connecting Phantom!');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -380,7 +440,7 @@ const AirdropSection = () => {
   };
 
   return (
-    <section id="airdrop" className="py-20 px-4">
+    <section id="airdrop" className="py-12 md:py-20 px-4">
       <div className="container mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
@@ -388,10 +448,10 @@ const AirdropSection = () => {
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 md:mb-6 px-4">
             Free <span className="text-binance-yellow">Airdrop</span>
           </h2>
-          <p className="text-xl text-binance-light-gray max-w-2xl mx-auto">
+          <p className="text-base md:text-xl text-binance-light-gray max-w-2xl mx-auto px-4">
             Connect your wallet and earn 1000 MemeCoin! 
             Valid for the first 50,000 users only.
           </p>
@@ -403,7 +463,7 @@ const AirdropSection = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="max-w-2xl mx-auto"
         >
-          <div className="glass-effect card-gradient rounded-2xl p-8 border border-binance-border">
+          <div className="glass-effect card-gradient rounded-2xl p-4 md:p-8 border border-binance-border">
             {!isConnected && !isSolanaConnected ? (
               // Wallet Selection Section
               <div className="text-center">
@@ -415,12 +475,15 @@ const AirdropSection = () => {
                   <Wallet className="w-10 h-10 text-white" />
                 </motion.div>
                 
-                <h3 className="text-2xl font-bold text-white mb-4">
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-4">
                   Choose Your Wallet
                 </h3>
                 
-                <p className="text-binance-light-gray mb-8">
-                  Select and connect your preferred wallet to participate in the airdrop.
+                <p className="text-sm md:text-base text-binance-light-gray mb-6 md:mb-8">
+                  {isMobile() 
+                    ? 'Tap to open your wallet app and connect'
+                    : 'Select and connect your preferred wallet to participate in the airdrop'
+                  }
                 </p>
 
                 {/* Wallet Options */}
@@ -429,85 +492,94 @@ const AirdropSection = () => {
                   <motion.button
                     onClick={connectMetaMask}
                     disabled={isLoading}
-                    className="w-full flex items-center space-x-4 p-4 bg-binance-dark/50 border border-binance-border rounded-xl hover:border-binance-yellow/50 transition-all disabled:opacity-50"
+                    className="w-full flex items-center space-x-3 md:space-x-4 p-3 md:p-4 bg-binance-dark/50 border border-binance-border rounded-xl hover:border-binance-yellow/50 transition-all disabled:opacity-50 touch-manipulation"
                     whileHover={{ scale: isLoading ? 1 : 1.02 }}
                     whileTap={{ scale: isLoading ? 1 : 0.98 }}
                   >
-                    <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">🦊</span>
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <span className="text-xl md:text-2xl">🦊</span>
                     </div>
-                    <div className="flex-1 text-left">
-                      <div className="text-white font-medium">MetaMask</div>
-                      <div className="text-sm text-binance-light-gray">
-                        {isMetaMaskInstalled() ? 'Ready to connect' : 'Not installed'}
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="text-white font-medium text-sm md:text-base">MetaMask</div>
+                      <div className="text-xs md:text-sm text-binance-light-gray truncate">
+                        {isMobile() 
+                          ? (isMetaMaskInstalled() ? 'Tap to connect' : 'Tap to install')
+                          : (isMetaMaskInstalled() ? 'Ready to connect' : 'Not installed')
+                        }
                       </div>
                     </div>
-                    <div className={`w-3 h-3 rounded-full ${isMetaMaskInstalled() ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isMetaMaskInstalled() ? 'bg-green-400' : 'bg-red-400'}`}></div>
                   </motion.button>
 
                   {/* TrustWallet */}
                   <motion.button
                     onClick={connectTrustWallet}
                     disabled={isLoading}
-                    className="w-full flex items-center space-x-4 p-4 bg-binance-dark/50 border border-binance-border rounded-xl hover:border-binance-yellow/50 transition-all disabled:opacity-50"
+                    className="w-full flex items-center space-x-3 md:space-x-4 p-3 md:p-4 bg-binance-dark/50 border border-binance-border rounded-xl hover:border-binance-yellow/50 transition-all disabled:opacity-50 touch-manipulation"
                     whileHover={{ scale: isLoading ? 1 : 1.02 }}
                     whileTap={{ scale: isLoading ? 1 : 0.98 }}
                   >
-                    <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
-                      <Smartphone className="w-6 h-6 text-white" />
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Smartphone className="w-5 h-5 md:w-6 md:h-6 text-white" />
                     </div>
-                    <div className="flex-1 text-left">
-                      <div className="text-white font-medium">TrustWallet</div>
-                      <div className="text-sm text-binance-light-gray">
-                        {isTrustWalletInstalled() || isMetaMaskInstalled() ? 'Ready to connect' : 'Not installed'}
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="text-white font-medium text-sm md:text-base">TrustWallet</div>
+                      <div className="text-xs md:text-sm text-binance-light-gray truncate">
+                        {isMobile() 
+                          ? (isTrustWalletInstalled() || isMetaMaskInstalled() ? 'Tap to connect' : 'Tap to install')
+                          : (isTrustWalletInstalled() || isMetaMaskInstalled() ? 'Ready to connect' : 'Not installed')
+                        }
                       </div>
                     </div>
-                    <div className={`w-3 h-3 rounded-full ${isTrustWalletInstalled() || isMetaMaskInstalled() ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isTrustWalletInstalled() || isMetaMaskInstalled() ? 'bg-green-400' : 'bg-red-400'}`}></div>
                   </motion.button>
 
                   {/* Phantom */}
                   <motion.button
                     onClick={connectPhantom}
                     disabled={isLoading}
-                    className="w-full flex items-center space-x-4 p-4 bg-binance-dark/50 border border-binance-border rounded-xl hover:border-binance-yellow/50 transition-all disabled:opacity-50"
+                    className="w-full flex items-center space-x-3 md:space-x-4 p-3 md:p-4 bg-binance-dark/50 border border-binance-border rounded-xl hover:border-binance-yellow/50 transition-all disabled:opacity-50 touch-manipulation"
                     whileHover={{ scale: isLoading ? 1 : 1.02 }}
                     whileTap={{ scale: isLoading ? 1 : 0.98 }}
                   >
-                    <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
-                      <span className="text-2xl">👻</span>
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <span className="text-xl md:text-2xl">👻</span>
                     </div>
-                    <div className="flex-1 text-left">
-                      <div className="text-white font-medium">Phantom</div>
-                      <div className="text-sm text-binance-light-gray">
-                        {isPhantomInstalled() ? 'Ready to connect' : 'Not installed'}
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="text-white font-medium text-sm md:text-base">Phantom</div>
+                      <div className="text-xs md:text-sm text-binance-light-gray truncate">
+                        {isMobile() 
+                          ? (isPhantomInstalled() ? 'Tap to connect' : 'Tap to install')
+                          : (isPhantomInstalled() ? 'Ready to connect' : 'Not installed')
+                        }
                       </div>
                     </div>
-                    <div className={`w-3 h-3 rounded-full ${isPhantomInstalled() ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isPhantomInstalled() ? 'bg-green-400' : 'bg-red-400'}`}></div>
                   </motion.button>
                 </div>
 
                 {isLoading && (
                   <div className="flex items-center justify-center space-x-2 text-binance-yellow">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-binance-yellow"></div>
-                    <span>Connecting wallet...</span>
+                    <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-b-2 border-binance-yellow"></div>
+                    <span className="text-sm md:text-base">Connecting wallet...</span>
                   </div>
                 )}
 
                 {/* Requirements */}
-                <div className="mt-6 text-left">
-                  <h4 className="text-sm font-medium text-white mb-3">Supported Networks:</h4>
-                  <div className="space-y-2">
+                <div className="mt-4 md:mt-6 text-left">
+                  <h4 className="text-xs md:text-sm font-medium text-white mb-2 md:mb-3">Supported Networks:</h4>
+                  <div className="space-y-1 md:space-y-2">
                     <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                      <span className="text-sm text-binance-light-gray">Ethereum & BSC (MetaMask, TrustWallet)</span>
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full flex-shrink-0"></div>
+                      <span className="text-xs md:text-sm text-binance-light-gray">Ethereum & BSC (MetaMask, TrustWallet)</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                      <span className="text-sm text-binance-light-gray">Solana (Phantom)</span>
+                      <div className="w-2 h-2 bg-purple-400 rounded-full flex-shrink-0"></div>
+                      <span className="text-xs md:text-sm text-binance-light-gray">Solana (Phantom)</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                      <span className="text-sm text-binance-light-gray">Tron TRC20 USDT (TronLink)</span>
+                      <div className="w-2 h-2 bg-red-400 rounded-full flex-shrink-0"></div>
+                      <span className="text-xs md:text-sm text-binance-light-gray">Tron TRC20 USDT (TronLink)</span>
                     </div>
                   </div>
                 </div>
@@ -517,26 +589,26 @@ const AirdropSection = () => {
               <div>
                 {/* Connected Wallet Info */}
                 <div className="space-y-4 mb-6">
-                  <div className="flex items-center justify-between p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-green-400 font-medium">
+                  <div className="flex items-center justify-between p-3 md:p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+                    <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
+                      <span className="text-green-400 font-medium text-sm md:text-base truncate">
                         {connectedWalletType === WALLET_TYPES.PHANTOM ? 'Phantom' : 
                          connectedWalletType === WALLET_TYPES.TRUSTWALLET ? 'TrustWallet' : 'MetaMask'} Connected
                       </span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-white font-mono text-sm">
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      <span className="text-white font-mono text-xs md:text-sm">
                         {connectedWalletType === WALLET_TYPES.PHANTOM 
-                          ? `${solanaAddress.slice(0, 6)}...${solanaAddress.slice(-4)}`
-                          : `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                          ? `${solanaAddress.slice(0, 4)}...${solanaAddress.slice(-4)}`
+                          : `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
                         }
                       </span>
                       <button
                         onClick={copyAddress}
-                        className="text-binance-yellow hover:text-white transition-colors"
+                        className="text-binance-yellow hover:text-white transition-colors p-1 touch-manipulation"
                       >
-                        <Copy className="w-4 h-4" />
+                        <Copy className="w-3 h-3 md:w-4 md:h-4" />
                       </button>
                     </div>
                   </div>
@@ -553,11 +625,11 @@ const AirdropSection = () => {
                       <Gift className="w-8 h-8 text-white" />
                     </motion.div>
                     
-                    <h3 className="text-2xl font-bold text-white mb-4">
+                    <h3 className="text-xl md:text-2xl font-bold text-white mb-4">
                       Processing Airdrop
                     </h3>
                     
-                    <p className="text-binance-light-gray mb-8">
+                    <p className="text-sm md:text-base text-binance-light-gray mb-6 md:mb-8 px-2">
                       {isLoading 
                         ? 'Your airdrop is being processed. Please wait and confirm any wallet transactions.'
                         : 'Ready to claim your 1000 MemeCoin tokens.'
