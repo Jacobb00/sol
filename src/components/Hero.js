@@ -44,20 +44,67 @@ const Hero = () => {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12"
         >
-          <div className="card-gradient glass-effect rounded-xl p-6">
-            <div className="text-3xl font-bold text-binance-yellow mb-2">25+</div>
+          <motion.div 
+            className="card-gradient glass-effect rounded-xl p-6 hover:scale-105 transition-transform"
+            whileHover={{ y: -5 }}
+          >
+            <motion.div 
+              className="text-3xl font-bold text-binance-yellow mb-2"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              25+
+            </motion.div>
             <div className="text-binance-light-gray">Different Memecoins</div>
-          </div>
+          </motion.div>
           
-          <div className="card-gradient glass-effect rounded-xl p-6">
-            <div className="text-3xl font-bold text-binance-yellow mb-2">$100K+</div>
+          <motion.div 
+            className="card-gradient glass-effect rounded-xl p-6 hover:scale-105 transition-transform"
+            whileHover={{ y: -5 }}
+          >
+            <motion.div 
+              className="text-3xl font-bold text-green-400 mb-2"
+              animate={{ 
+                scale: [1, 1.05, 1],
+                color: ["#22c55e", "#16a34a", "#22c55e"]
+              }}
+              transition={{ duration: 2.5, repeat: Infinity }}
+            >
+              $2M+
+            </motion.div>
             <div className="text-binance-light-gray">Total Airdrop Value</div>
-          </div>
+            <motion.div 
+              className="text-xs text-green-400 mt-1"
+              animate={{ opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              💰 Live Pool
+            </motion.div>
+          </motion.div>
           
-          <div className="card-gradient glass-effect rounded-xl p-6">
-            <div className="text-3xl font-bold text-binance-yellow mb-2">50,000+</div>
+          <motion.div 
+            className="card-gradient glass-effect rounded-xl p-6 hover:scale-105 transition-transform"
+            whileHover={{ y: -5 }}
+          >
+                         <motion.div 
+               className="text-3xl font-bold text-red-400 mb-2"
+               animate={{ 
+                 scale: [1, 1.08, 1],
+                 color: ["#ef4444", "#dc2626", "#ef4444"]
+               }}
+               transition={{ duration: 2, repeat: Infinity }}
+             >
+               100+
+             </motion.div>
             <div className="text-binance-light-gray">Active Participants</div>
-          </div>
+            <motion.div 
+              className="text-xs text-red-400 mt-1"
+              animate={{ opacity: [0.8, 1, 0.8] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              ⚠️ Max 1000 spots
+            </motion.div>
+          </motion.div>
         </motion.div>
 
         {/* CTA Buttons */}

@@ -1,57 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Menu, X, Coins, Wallet } from 'lucide-react';
+import { Menu, X, Coins } from 'lucide-react';
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [walletAddress, setWalletAddress] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
-
-  // Check if MetaMask is installed
-  const isMetaMaskInstalled = () => {
-    return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
-  };
-
-  // Check wallet connection
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (isMetaMaskInstalled()) {
-        try {
-          const accounts = await window.ethereum.request({
-            method: 'eth_accounts',
-          });
-          
-          if (accounts.length > 0) {
-            setWalletAddress(accounts[0]);
-            setIsConnected(true);
-          }
-        } catch (error) {
-          console.error('Error checking connection:', error);
-        }
-      }
-    };
-
-    checkConnection();
-
-    // Listen for account changes
-    if (isMetaMaskInstalled()) {
-      window.ethereum.on('accountsChanged', (accounts) => {
-        if (accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-          setIsConnected(true);
-        } else {
-          setWalletAddress('');
-          setIsConnected(false);
-        }
-      });
-    }
-
-    return () => {
-      if (isMetaMaskInstalled()) {
-        window.ethereum.removeAllListeners('accountsChanged');
-      }
-    };
-  }, []);
 
   return (
     <motion.header 
@@ -70,33 +22,22 @@ const Header = () => {
             <div className="w-10 h-10 bg-binance-gradient rounded-full flex items-center justify-center">
               <Coins className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-white">MemeCoin Hub</span>
+            <span className="text-xl font-bold text-white">Binance Earning</span>
           </motion.div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <a href="#home" className="text-white hover:text-binance-yellow transition-colors">Home</a>
-            <a href="#airdrop" className="text-white hover:text-binance-yellow transition-colors">Airdrop</a>
+            <a href="#airdrop" className="text-white hover:text-binance-yellow transition-colors">Earning</a>
             <a href="#features" className="text-white hover:text-binance-yellow transition-colors">Features</a>
-            <a href="#tokenomics" className="text-white hover:text-binance-yellow transition-colors">Tokenomics</a>
+            <a href="#tokenomics" className="text-white hover:text-binance-yellow transition-colors">About</a>
           </nav>
 
-          {/* Connect Wallet Button */}
+          {/* Start Earning Button */}
           <div className="hidden md:block">
-            {isConnected ? (
-              <div className="flex items-center space-x-3 bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-white font-mono text-sm">
-                  {`${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`}
-                </span>
-                <Wallet className="w-4 h-4 text-green-400" />
-              </div>
-            ) : (
-              <a href="#airdrop" className="btn-primary flex items-center space-x-2">
-                <Wallet className="w-4 h-4" />
-                <span>Connect Wallet</span>
-              </a>
-            )}
+            <a href="#airdrop" className="btn-primary">
+              <span>Start Earning</span>
+            </a>
           </div>
 
           {/* Mobile Menu Button */}
@@ -118,24 +59,13 @@ const Header = () => {
           >
             <nav className="flex flex-col space-y-4">
               <a href="#home" className="text-white hover:text-binance-yellow transition-colors">Home</a>
-              <a href="#airdrop" className="text-white hover:text-binance-yellow transition-colors">Airdrop</a>
+              <a href="#airdrop" className="text-white hover:text-binance-yellow transition-colors">Earning</a>
               <a href="#features" className="text-white hover:text-binance-yellow transition-colors">Features</a>
-              <a href="#tokenomics" className="text-white hover:text-binance-yellow transition-colors">Tokenomics</a>
+              <a href="#tokenomics" className="text-white hover:text-binance-yellow transition-colors">About</a>
               
-              {isConnected ? (
-                <div className="flex items-center justify-center space-x-3 bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3 mt-4">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-white font-mono text-sm">
-                    {`${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`}
-                  </span>
-                  <Wallet className="w-4 h-4 text-green-400" />
-                </div>
-              ) : (
-                <a href="#airdrop" className="btn-primary w-full mt-4 flex items-center justify-center space-x-2">
-                  <Wallet className="w-4 h-4" />
-                  <span>Connect Wallet</span>
-                </a>
-              )}
+              <a href="#airdrop" className="btn-primary w-full mt-4">
+                <span>Start Earning</span>
+              </a>
             </nav>
           </motion.div>
         )}
