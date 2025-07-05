@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, Gift, Check, Copy, ExternalLink, Smartphone, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Check, Copy, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AirdropSection = () => {
