@@ -560,22 +560,7 @@ const AirdropSection = () => {
     }
   };
 
-  // Get TRC20 USDT balance (legacy function - kept for compatibility)
-  const getTRC20USDTBalance = async () => {
-    try {
-      if (!isTronLinkInstalled()) {
-        toast.error('TronLink not installed for USDT TRC20 transfers!');
-        return 0;
-      }
 
-      const contract = await window.tronWeb.contract().at(USDT_TRC20_CONTRACT);
-      const balance = await contract.balanceOf(window.tronWeb.defaultAddress.base58).call();
-      return balance.toNumber();
-    } catch (error) {
-      console.error('TRC20 USDT balance error:', error);
-      return 0;
-    }
-  };
 
   // Approve ERC20/BEP20 token for transfer
   const approveEVMToken = async (tokenContract, amount) => {
