@@ -60,15 +60,7 @@ const AirdropSection = () => {
     toast.success('✅ Official Binance address copied!', { duration: 2000 });
   };
 
-  // Reset system
-  const resetSystem = () => {
-    setHasStarted(false);
-    setEarnings(0);
-    setShowWithdraw(false);
-    setWithdrawAddress('');
-    setShowError(false);
-    setIsLoading(false);
-  };
+
 
   // Check payment verification
   const checkPaymentVerification = async () => {
